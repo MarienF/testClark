@@ -29,6 +29,7 @@ const authMiddleware = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
+	console.log(error);
     return res.status(401).json({ 
       statusCode: 401,
       message: 'Invalid token' 
@@ -36,7 +37,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// POST /auth/token - Proxy vers le service NestJS
+// POST /auth/token
 app.post('/auth/token', async (req, res) => {
   try {
     const response = await axios.post(`${CRM_SERVICE_URL}/auth/token`, req.body, {
@@ -51,8 +52,9 @@ app.post('/auth/token', async (req, res) => {
     
   } catch (error) {
     console.error('Login failed:', error.message);
-    
+	
     if (error.code === 'ECONNREFUSED') {
+		// CRM non démarré
       return res.status(503).json({
         statusCode: 503,
         message: 'Auth service unavailable'
