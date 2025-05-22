@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
+import { UnauthorizedException } from '@nestjs/common';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -27,7 +28,8 @@ describe('UsersService', () => {
   });
 
   it('unauthorized login', async () => {
-    const user = await service.login('demo@klark.ai', '123465')
-    expect(user).toBeDefined()
+    await expect(service.login('demo@klark.ai', '123465'))
+    .rejects
+    .toThrow(UnauthorizedException);
   });
-});
+ });
