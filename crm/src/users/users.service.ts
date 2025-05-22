@@ -6,7 +6,7 @@ import { users } from '../db'
 @Injectable()
 export class UsersService {
   async findOneByEmail(email: string): Promise<IUser> {
-    const existingUser = await users.find((user: IUser) => user.email === email);
+    const existingUser = await users.find((user: IUser) => user.email.toLowerCase() === email);
     if (!existingUser) {
       throw new NotFoundException(`User with email #${email} not found`);
     }
@@ -14,6 +14,14 @@ export class UsersService {
   }
 
   async login (email: string, password: string) {
-    return this.findOneByEmail(email)
+    const user = await this.findOneByEmail(email);
+
+    // Verification du mot de passe
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return user;
   }
 }
