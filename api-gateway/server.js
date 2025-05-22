@@ -1,13 +1,14 @@
 const express = require('express');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 const app = express();
 const PORT = 3002;
-const JWT_SECRET = '123456';
+const JWT = process.env.JWT_SECRET;
 
 // URLs des microservices
-const CRM_SERVICE_URL = 'http://localhost:3000'; // Projet NestJS original
+const CRM_SERVICE_URL = 'http://localhost:3000';
 
 // Middleware
 app.use(express.json());
@@ -24,7 +25,7 @@ const authMiddleware = (req, res, next) => {
   }
   
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT);
     req.user = decoded;
     next();
   } catch (error) {
@@ -35,18 +36,14 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// PROXY ROUTES
-
 // POST /auth/token - Proxy vers le service NestJS
 app.post('/auth/token', async (req, res) => {
   try {
-    console.log(`🔄 Proxying login to ${CRM_SERVICE_URL}/auth/token`);
-    
     const response = await axios.post(`${CRM_SERVICE_URL}/auth/token`, req.body, {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 5000 // 5 secondes de timeout
+      timeout: 5000
     });
     
     console.log('Login successful, forwarding token');
@@ -75,40 +72,12 @@ app.post('/auth/token', async (req, res) => {
   }
 });
 
-// ROUTES LOCALES (gérées par l'API Gateway)
 
-// GET / - Hello World (protégé par l'API Gateway)
+// GET / - Hello World
 app.get('/', authMiddleware, (req, res) => {
   res.send('Hello World!');
 });
 
-// GET /users/profile - Exemple de route qui pourrait proxy vers un Users Service
-app.get('/users/profile', authMiddleware, async (req, res) => {
-  try {
-    // Pour l'instant, pas de Users Service séparé, donc on retourne une réponse locale
-    res.json({
-      message: 'This would be proxied to Users Service',
-      user: {
-        id: req.user.sub,
-        service: 'API Gateway'
-      }
-    });
-    
-    // Version proxy (si tu as un Users Service sur port 3002) :
-    /*
-    const response = await axios.get(`http://localhost:3002/profile`, {
-      headers: {
-        'Authorization': req.headers.authorization
-      }
-    });
-    res.json(response.data);
-    */
-    
-  } catch (error) {
-    console.error('❌ Users service error:', error.message);
-    res.status(500).json({ message: 'Users service unavailable' });
-  }
-});
 
 // Health check (avec vérification des services)
 app.get('/health', async (req, res) => {
@@ -142,11 +111,5 @@ app.use('*', (req, res) => {
 
 // Démarrage du serveur
 app.listen(PORT, () => {
-  console.log(`🚀 API Gateway running on port ${PORT}`);
-  console.log(`🔗 Proxying to CRM Service: ${CRM_SERVICE_URL}`);
-  console.log(`📋 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔐 Login (proxied): POST http://localhost:${PORT}/auth/token`);
-  console.log(`👋 Hello (local): GET http://localhost:${PORT}/`);
-  console.log('');
-  console.log('⚠️  Make sure the NestJS CRM service is running on port 3001!');
+	console.log(`API Gateway running on port ${PORT}`);
 });
